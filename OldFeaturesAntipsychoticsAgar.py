@@ -16,7 +16,7 @@ import TierPsyInput as TP
 
 
 #now call these functions
-directoryA, fileDirA, featuresA = TP.TierPsyInput('old', 'Liquid')
+directoryA, fileDirA, featuresA, trajectoriesA = TP.TierPsyInput('old', 'Liquid')
 
 #%%
 #now for filtering of tracks and features
@@ -25,7 +25,10 @@ import numpy as np
 
 to_excludeA={}
 for rep in featuresA:
-    to_excludeA[rep] = TP.FeatFilter(featuresA[rep])
+    if featuresA[rep].empty:
+        continue
+    else:
+        to_excludeA[rep] = TP.FeatFilter(featuresA[rep])
 
 #combined for all experiments to exclude
 list_exclude = [y for v in to_excludeA.values() for y in v]
@@ -47,7 +50,10 @@ featuresA2 = featuresA.copy()
 #pop out experiment list
 exp_namesA={}
 for rep in featuresA:
-    exp_namesA[rep] = featuresA[rep].pop('exp')
+    if featuresA[rep].empty:
+        continue
+    else:
+        exp_namesA[rep] = featuresA[rep]['exp']
 
 drugA = {}
 concA = {}
@@ -364,6 +370,7 @@ all_drugs = featMatMean2.pop('drug')
 all_concs = featMatMean2.pop('concentration')
 all_exps = featMatMean2.pop('experiment')
 featMatMean2 = featMatMean2.iloc[:,4:-1]
+featMatMean2 = featMatMean2.reset_index(drop=True)
 
 #standard scalar before doing the the PCA
 X_std_combi  = StandardScaler().fit_transform(featMatMean2)

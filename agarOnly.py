@@ -6,14 +6,14 @@ Created on Thu Apr 12 15:46:08 2018
 @author: ibarlow
 """
 
-""" comparison of mRMR feature selection vs significant feature selection for 
+""" PCA implementation; comparison of mRMR feature selection vs significant feature selection for 
 running LDA"""
 
 import TierPsyInput as TP
 import numpy as np
 import pandas as pd
 
-directoryA, fileDirA, featuresA =  TP.TierPsyInput('new', 'Liquid')
+directoryA, fileDirA, featuresA,trajectoriesA =  TP.TierPsyInput('new', 'Liquid')
 
 #from here pull out info about each of the experiment's variables, such as drug, concentration and uniqueID
 
@@ -174,6 +174,9 @@ date_all = featMatAll2.pop ('date')
 
 reps = list(featuresZ2.keys())
 
+
+#save this feature matrix
+featMatAll.to_csv(os.path.join(os.path.dirname(directoryA), 'NewFeatures.csv'))
 #%% so now onto the PCA
     #use sklearn toolkit as more reliable, faster and more concise than my own code
 
@@ -182,8 +185,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 
+#load data again if necessary
+FeatIn = '/Volumes/behavgenom_archive$/Adam/screening/antipsychotics/Figures/New_Features/NewFeatures.csv'
+
+featMatAll2 = pd.read_csv(FeatIn, index_col=0)
+drug_all = featMatAll2.pop ('drug')
+conc_all = featMatAll2.pop('concentration')
+date_all = featMatAll2.pop ('date')
+
+allDrugs = np.unique(drug_all)
+
 #make array of z-scored data
-X = np.array(featMatAll2.values)
+X = np.array(featMatAll2.select_dtypes(include='float').drop(columns = 'concentration'))
 #initialise PCA
 pca = PCA()
 X2= pca.fit_transform(X)
@@ -193,11 +206,12 @@ cut_off = int(np.argwhere(thresh)[-1])
 
 #make a plot
 sns.set_style('whitegrid')
-plt.plot(range(0, len(cumvar)), cumvar)
-plt.plot([cut_off, cut_off], [0, 1], 'k')
+plt.plot(range(0, len(cumvar)), cumvar*100)
+plt.plot([cut_off, cut_off], [0, 100], 'k')
 plt.xlabel('Number of Principal Components', fontsize =16)
 plt.ylabel('variance explained', fontsize =16)
 plt.savefig(os.path.join(directoryA[:-7], 'Figures', 'agarPCvar.png'), dpi =150)
+plt.savefig(os.path.join(directoryA[:-7], 'Figures', 'agarPCvar.svg'),dpi = 150)
 
 #now put the 1:cut_off PCs into a dataframe
 PCname = ['PC_%d' %(p+1) for p in range (0,cut_off+1)]
@@ -214,7 +228,6 @@ PC_sum =[] #explained variance
 for PC in range(0, len(PCname)):
     PC_feat.append(list(featMatAll2.columns[np.argsort(pca.components_[PC])]))
     PC_sum.append(list((pca.components_[PC])/ np.sum(abs(pca.components_[PC]))))
-    #-\
      #                   np.mean((pca.components_[PC])))/np.std((pca.components_[PC])))
     
 #dataframe containing standards scores of contibution of each feature
@@ -224,34 +237,59 @@ PC_vals = pd.DataFrame(data= PC_sum, columns =  featMatAll2.columns)
 #okay so now can plot as biplot
 plt.figure()
 for i in range(0,1):
-    plt.arrow(0,0, PC_vals.iloc[0,:][PC_feat[0][-1-i]]*100, PC_vals.iloc[1,:][PC_feat[0][-1-i]]*100,color= 'b')
-    plt.arrow(0,0, PC_vals.iloc[0,:][PC_feat[1][-1-i]]*100, PC_vals.iloc[1,:][PC_feat[1][-1-i]]*100, color='r')
-    plt.text(PC_vals.iloc[0,:][PC_feat[0][-1-i]] + 0.7, PC_vals.iloc[1,:][PC_feat[0][-1-i]] - 0.3, PC_feat[0][-1-i],\
+    plt.arrow(0,0, PC_vals.iloc[0,:][PC_feat[0][-1-i]]*100, \
+              PC_vals.iloc[1,:][PC_feat[0][-1-i]]*100,color= 'b')
+    plt.arrow(0,0, PC_vals.iloc[0,:][PC_feat[1][-1-i]]*100,\
+              PC_vals.iloc[1,:][PC_feat[1][-1-i]]*100, color='r')
+    plt.text(PC_vals.iloc[0,:][PC_feat[0][-1-i]] + 0.7,\
+             PC_vals.iloc[1,:][PC_feat[0][-1-i]] - 0.3, PC_feat[0][-1-i],\
              ha='center', va='center')
     plt.text(PC_vals.iloc[0,:][PC_feat[1][-1-i]]+0.5, PC_vals.iloc[1,:][PC_feat[1][-1-i]]+1,\
          PC_feat[1][-1-i], ha='center', va='center')
 
 plt.xlim (-2, 2)
 plt.ylim (-2, 2)
-plt.xlabel('% of PC_1', fontsize = 16)
-plt.ylabel('% of PC_2', fontsize = 16)
+plt.xlabel('%' + 'PC_1 (%.2f)' % (pca.explained_variance_ratio_[0]*100), fontsize = 16)
+plt.ylabel('%' + 'PC_2 (%.2f)' % (pca.explained_variance_ratio_[1]*100), fontsize = 16)
 plt.show()
 plt.savefig(os.path.join(directoryA[:-7], 'Figures', 'agar_biplot.png'))
 
 
 import PCA_analysis as PC_custom 
-cmap1 = sns.color_palette("tab20", len(np.unique(featMatAll['drug']))+1) #need this to match the clustergram from mRMR so add one for cloz10
+cmap1 = sns.color_palette("tab20", len(np.unique(drug_all))+1) #need this to match the clustergram from mRMR so add one for cloz10
 #get rid of 5th row, which woudl be cloz10 -  there is probably a smarter way to do this...
 cmap1 = np.delete(cmap1, 4, axis = 0)
 
 #make the PC plots
-PC_custom.PC12_plots(PC_df, 10, rep, directoryA, 'tif')
-test = PC_custom.PC_av(PC_df, [])
-PC_custom.PC_traj(test, rep, directoryA, 'tif', cmap1)
+PC_custom.PC12_plots(PC_df, [], 'all' ,cmap1, directoryA, 'tif', 'concentration')
+PCmean, PCsem = PC_custom.PC_av(PC_df, [], 'concentration')
+PC_custom.PC_traj(PCmean, PCsem,['PC_1', 'PC_2'], 'all', directoryA, 'tif', cmap1, [], start_end=False)
 
 #the sklearn and my custom PCA gave exactly the same results - Phew
 
+#updated PC12 plots
+import PC_traj as PCJ
+from matplotlib.colors import LinearSegmentedColormap
+import make_colormaps as mkc
 
+cmapGraded = [] #and graded colormaps
+for item in cmap1:
+    cmapGraded.append([(1,1,1), (item)])
+
+lutGraded = dict(zip(allDrugs, cmapGraded))
+cm={}
+for drug in lutGraded:
+    cmap_name = drug
+    # Create the colormap
+    cm[drug] = LinearSegmentedColormap.from_list(
+        cmap_name, lutGraded[drug], N=60)
+    plt.register_cmap(cmap = cm[drug])    
+    
+#plot the colorgradients
+mkc.plot_color_gradients(cm, cm.keys())
+plt.savefig(os.path.join(os.path.dirname(directoryA), 'Figures', 'gradientDrugColors.png'))
+
+PCJ.PC_trajGraded(PCmean, PCsem, 'all', directoryA, 'tif', 'concentration', start_end=False, cum_var = cumvar, legend= 'off' )
 
 #%% now on to the stats
     #for this it is usful to append the conditions onto the dataframe
@@ -632,7 +670,7 @@ mrFeatsA = pymrmr.mRMR(cat, 'MID', 150)
 mrFeatsA2 = pymrmr.mRMR(cat2, 'MID', 150)
 
 #make a temporary directory for figures
-directoryTemp = '/Users/ibarlow/Desktop/tempFigures/Results'
+directoryTemp = '/Volumes/behavgenom_archive$/Adam/screening/antipsychotics/Figures'
 
 #export these features as txt tile
 out = open(os.path.join(directoryTemp[:-7], 'mRMR_featsAgarAllclassesFINAL.txt'), 'w')
