@@ -196,7 +196,7 @@ date_all = featMatAll2.pop ('date')
 allDrugs = np.unique(drug_all)
 
 #make array of z-scored data
-X = np.array(featMatAll2.select_dtypes(include='float').drop(columns = 'concentration'))
+X = np.array(featMatAll2.select_dtypes(include='float'))
 #initialise PCA
 pca = PCA()
 X2= pca.fit_transform(X)
@@ -429,7 +429,7 @@ sns.set_style('whitegrid')
 
 for rep in featuresA2:
     for feat in range(0,10):
-        swarm.swarms (rep, sig_feats[rep][feat][0], featuresA2[rep], directoryA, '.tif', cmap)
+        swarm.swarms (rep, sig_feats[rep][feat][0], featuresA2[rep], directoryA, '.tif', 'Blues')
 
 #make a list of any of the features that are significantly different in all experiments
 stats_feats = []
