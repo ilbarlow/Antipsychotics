@@ -43,7 +43,7 @@ features = features.fillna(features.mean(axis=0))
 featuresZ = features.select_dtypes(include = 'float32')
 featuresZ = pd.DataFrame(stats.zscore(featuresZ, axis=0), columns = featuresZ.columns)
 
-metadata = pd.read_csv(os.path.join(os.path.dirname(dirFeats),'AuxiliaryFiles', 'metadata.csv' ))
+metadata = pd.read_csv(os.path.join(os.path.dirname(dirFeats),'AuxiliaryFiles', 'metadata.csv' ), index_col=False)
 
 #now match up metadata with the files and add in drug, concentration information
     #can assume that both FeatFiles and metadata are sorted by set and channel

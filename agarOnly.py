@@ -186,17 +186,28 @@ import seaborn as sns
 from scipy import stats
 
 #load data again if necessary
-FeatIn = '/Volumes/behavgenom_archive$/Adam/screening/antipsychotics/Figures/New_Features/NewFeatures.csv'
+FeatIn = '/Volumes/behavgenom_archive$/Adam/screening/antipsychotics/NewFeatures.csv'
 
-featMatAll2 = pd.read_csv(FeatIn, index_col=0)
+featMatAll2 = pd.read_csv(FeatIn, index_col=False)
 drug_all = featMatAll2.pop ('drug')
 conc_all = featMatAll2.pop('concentration')
 date_all = featMatAll2.pop ('date')
 
 allDrugs = np.unique(drug_all)
 
+#zscore
+def z_score(df):
+    return (df-df.mean())/df.std(ddof=0)
+
+featuresZ = featMatAll2.select_dtypes(include=['float64'])
+featMatZ = featuresZ.apply(z_score)
+featMatZ = featMatZ.fillna(featMatZ.mean(axis=0))
+featMatZ = featMatZ.drop(columns = featMatZ.columns[featMatZ.isna().sum()>featMatZ.shape[0]/2])
+
+featMatZ2 = pd.concat([featMatZ, drug_all, conc_all, date_all], axis=1)
+
 #make array of z-scored data
-X = np.array(featMatAll2.select_dtypes(include='float'))
+X = np.array(featMatZ2.select_dtypes(include='float').drop(columns='concentration'))
 #initialise PCA
 pca = PCA()
 X2= pca.fit_transform(X)
@@ -210,8 +221,8 @@ plt.plot(range(0, len(cumvar)), cumvar*100)
 plt.plot([cut_off, cut_off], [0, 100], 'k')
 plt.xlabel('Number of Principal Components', fontsize =16)
 plt.ylabel('variance explained', fontsize =16)
-plt.savefig(os.path.join(directoryA[:-7], 'Figures', 'agarPCvar.png'), dpi =150)
-plt.savefig(os.path.join(directoryA[:-7], 'Figures', 'agarPCvar.svg'),dpi = 150)
+plt.savefig(os.path.join(os.path.dirname(directoryA), 'Figures', 'agarPCvar.png'), dpi =150)
+plt.savefig(os.path.join(os.path.dirname(directoryA), 'Figures', 'agarPCvar.svg'),dpi = 150)
 
 #now put the 1:cut_off PCs into a dataframe
 PCname = ['PC_%d' %(p+1) for p in range (0,cut_off+1)]
@@ -226,7 +237,7 @@ PC_df['date'] = date_all
 PC_feat = [] #features
 PC_sum =[] #explained variance
 for PC in range(0, len(PCname)):
-    PC_feat.append(list(featMatAll2.columns[np.argsort(pca.components_[PC])]))
+    PC_feat.append(list(featMatZ.columns[np.argsort(pca.components_[PC])]))
     PC_sum.append(list((pca.components_[PC])/ np.sum(abs(pca.components_[PC]))))
      #                   np.mean((pca.components_[PC])))/np.std((pca.components_[PC])))
     
@@ -424,12 +435,12 @@ for rep in pVals2:
 #make some violin plots of the significant features
 import feature_swarms as swarm
 
-cmap =  sns.color_palette("tab20", len(uniqueDrugs))
+cmap =  sns.color_palette("Blues", len(uniqueDrugs))
 sns.set_style('whitegrid')
 
 for rep in featuresA2:
     for feat in range(0,10):
-        swarm.swarms (rep, sig_feats[rep][feat][0], featuresA2[rep], directoryA, '.tif', 'Blues')
+        swarm.swarms ('all', sig_feats[rep][feat][0], featMatAll, directoryA, '.tif', cmap)
 
 #make a list of any of the features that are significantly different in all experiments
 stats_feats = []

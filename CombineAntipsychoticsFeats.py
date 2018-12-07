@@ -56,6 +56,15 @@ allDrugs = np.unique(drugs)
 allConcs = np.unique(concs)
 allDates = np.unique(dates)
 
+#zscore
+def z_score(df):
+    return (df-df.mean())/df.std(ddof=0)
+
+featuresZ = featMatAll.select_dtypes(include=['float64']).drop(columns = 'concentration')
+featMatZ = featuresZ.apply(z_score)
+featMatZ = featMatZ.fillna(featMatZ.mean(axis=0))
+
+
 featMatZ2 = pd.concat([featMatZ, drugs, concs, dates], axis=1)
 #%%
 from sklearn.decomposition import PCA
@@ -150,7 +159,7 @@ savedir =  '/Volumes/behavgenom$/Ida/Data/Antipsychotics/Combined_analysis/Figur
 PC_custom.PC12_plots(PC_df, [],[], cmap1, savedir, 'tif', 'concentration')
 PCmean, PCsem = PC_custom.PC_av(PC_df, [], 'concentration')
 
-PCJ.PC_trajGraded(PCmean, PCsem, [], savedir, '.png', 'concentration', start_end = False,\
+PCJ.PC_trajGraded(PCmean, PCsem,['PC_1','PC_2'], [], savedir, '.png', 'concentration', start_end = False,\
                   cum_var = cumvar, legend = 'off')
 PC_custom.PC_traj(PCmean, PCsem,['PC_1', 'PC_2'], [], savedir, 'tif', cmap1,[], start_end=False)
 
@@ -193,7 +202,8 @@ plt.savefig(os.path.join(savedir, 'SelectRowsClustermap.tif'), dpi =200, bbox_in
 
 #and DMSO as a comparison
 plt.figure(figsize=(30,10))
-plt.imshow(featMatZ2[featMatZ2['drug']=='DMSO'].select_dtypes(include='float'),\ aspect='auto', vmin =-4, vmax = 4)
+plt.imshow(featMatZ2[featMatZ2['drug']=='DMSO'].select_dtypes(include='float'),\
+           aspect='auto', vmin =-4, vmax = 4)
 
 
 
@@ -214,8 +224,9 @@ plt.close()
 foo1 = featMatZ2['date']==20180906
 bar1 =featMatZ2['date'] == 20181005
 foo2 = featMatZ2['date'] ==20181011
+bar2 = featMatZ2['date'] ==20181028
 
-featMatZ3 = featMatZ2[foo1|bar1|foo2]
+featMatZ3 = featMatZ2[foo1|bar1|foo2|bar2]
 
 #remap rowcolors
 row_colors= featMatZ3['drug'].map(lut)
@@ -233,7 +244,7 @@ plt.savefig(os.path.join(savedir, 'NewCompoundsClustermap.tif'), \
             dpi =150, bbox_inches = 'tight', pad_inches = 1)
 plt.show()
 
-#show example anticorrelating feature - this is acutally foudn later in the script
+#show example anticorrelating feature - this is acutally found later in the script
 egFeat = 'relative_to_hips_radial_velocity_tail_tip_w_backward_90th'
 
 plt.figure()
@@ -361,13 +372,13 @@ for rep in pVals2:
 #make some violin plots of the significant features
 from feature_swarms import swarms
 
-cmap =  sns.color_palette("tab20", len(uniqueDrugs))
+cmap2 =  sns.color_palette("Blues", len(allConcs))
 sns.set_style('whitegrid')
 
 for rep in pVals2:
     for feat in range(0,10):
         #swarms (str(rep), sig_feats[rep][feat][0], featMatZ2[featMatZ2['date']==rep], savedir, '.tif', cmap)
-        swarms('all', sig_feats[rep][feat][0], featMatZ2 ,savedir, '.tif', cmap1)
+        swarms('all', sig_feats[rep][feat][0], featMatZ2 ,savedir, '.tif', cmap2)
 
 
 
@@ -416,12 +427,13 @@ DMSOtest =[]
 for date in allDates:
     DMSOtest.append(DMSO_PC2[date].values[~np.isnan(DMSO_PC2[date].values)])
         
-p = stats.f_oneway(DMSOtest[0], DMSOtest[1], DMSOtest[2],DMSOtest[3], DMSOtest[4],DMSOtest[5])
+p = stats.f_oneway(DMSOtest[0], DMSOtest[1], DMSOtest[2],DMSOtest[3], DMSOtest[4],\
+                   DMSOtest[5] ,DMSOtest[6])
 
 #there is a difference between the DMSO controls between the years
 plt.figure()
 sns.swarmplot(x='date', y='PC_2', data=PC_df[PC_df['drug']=='DMSO'], color = lut['DMSO'])
-plt.text(1,0.5, '1way_anova, p=' + str(p[1]))
+plt.text(1,0.3, '1way_anova, p=' + str(p[1]))
 plt.savefig(os.path.join(savedir, 'PC2_1wayANOVA.png'))
 plt.ylim([-0.5, 0.5])
 plt.show()
@@ -439,7 +451,7 @@ Conclabels =featMatZ2[featMatZ2['drug']!='No_Compound']['concentration'].to_fram
 Datelabels = featMatZ2[featMatZ2['drug']!='No_Compound']['date'].to_frame().reset_index(drop=True)
 
 #calculate CPCA with 50PCs
-projected_data = mdl.fit_transform(foreground, background,active_labels = Druglabels)
+projected_data = mdl.fit_transform(foreground, background)
 
 #and now plot to compare the alphas
 cPC_df = {}
@@ -454,7 +466,7 @@ for cpc in range(0,len(projected_data)):
     PC_custom.PC12_plots(cPC_df[cpc], [],'alpha' + str(cpc), cmap1, savedir, 'tif', 'concentration')  
     cPCmean[cpc], cPCsem[cpc] = PC_custom.PC_av(cPC_df[cpc], [], 'concentration')
 
-    PCJ.PC_trajGraded(cPCmean[cpc], cPCsem[cpc], 'alpha' + str(cpc), savedir, \
+    PCJ.PC_trajGraded(cPCmean[cpc], cPCsem[cpc], ['PC_1','PC_2'], 'alpha' + str(cpc), savedir, \
                       '.png', 'concentration', start_end = False, cum_var = cumvar, legend= 'off')
     PC_custom.PC_traj(cPCmean[cpc], cPCsem[cpc],['PC_1', 'PC_2'],'alpha' + str(cpc), savedir, 'tif', cmap1,[], start_end=False)
 
@@ -493,6 +505,10 @@ def specDrug12(selDrug,selConc, savedir, PC_DF):
 selDrugs = ['Haloperidol', 'Sodium Valproate', 'Lamotrigine']
 specDrug12(selDrugs,10, savedir, cPC_df[3])   
 
+PCJ.PC_trajGraded(cPCmean[cpc], cPCsem[cpc], ['PC_5','PC_6'], 'alpha' + str(cpc), savedir,\
+                  '.png', 'concentration', start_end = False, cum_var = cumvar, legend= 'off')
+
+
 #%%only plot the old antipsychotics as trajectory
 oldDrugs = ['DMSO', 'Chlopromazine hydrocholoride', 'Clozapine', 'Amisulpride', 'Aripiprazol',\
          'Olanzapine', 'Raclopride', 'Risperidone']
@@ -503,7 +519,7 @@ for drug in oldDrugs:
 
 cPCmeanOld, cPCsemOld = PC_custom.PC_av(oldPC_DF, [], 'concentration')
 
-PCJ.PC_trajGraded(cPCmeanOld, cPCsemOld, 'old', savedir, \
+PCJ.PC_trajGraded(cPCmeanOld, cPCsemOld,['PC_1', 'PC_2'],  'old', savedir, \
           '.png', 'concentration', start_end = False, cum_var = cumvar, legend= 'off')
 
 #%%
@@ -527,7 +543,8 @@ for cpc in cPC_df:
         
         
     p.append(stats.f_oneway(cDMSOtest[cpc][0], cDMSOtest[cpc][1], cDMSOtest[cpc][2],\
-                            cDMSOtest[cpc][3], cDMSOtest[cpc][4],cDMSOtest[cpc][5]))
+                            cDMSOtest[cpc][3], cDMSOtest[cpc][4],cDMSOtest[cpc][5],\
+                            cDMSOtest[cpc][6]))
 
 #for all values of alpha the difference between DMSO at PC2 disappears
 #to visually compare DMSO responses across dates
