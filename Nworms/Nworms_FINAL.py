@@ -43,9 +43,6 @@ testfeatures = ['angular_velocity_abs_90th', 'relative_to_body_angular_velocity_
 saveDir = os.path.join(FoldIn, 'Figures')
 if not os.path.exists(saveDir):
     os.makedirs(saveDir)
-
-#define function to do statistics and multiple comparisons
-
     
 #import features, filenames and metadata
 Metadata = pd.DataFrame()
@@ -154,23 +151,6 @@ for n in nworms:
             except KeyError:
                 print('no data for {} worms on {} drug on {}'.format(n, drug, date))
     
-#EucDist = pd.DataFrame(distance.squareform(distance.pdist(FeatMatZ, metric= 'euclidean')),\
-#                       index=FeatMatZ.index) #scikit pairwise distance is more efficient function
-#
-#    #need to reset the index to find the corresponding edists
-#EucDist = EucDist.reset_index([0,1,2])
-#EucDistGrouped = EucDist.groupby(['worm_number'])# group by worm number
-#
-#    #make eDist DataFrame
-#eDistDF = pd.DataFrame()
-#for n in nworms:
-#    plotDF = pd.concat([EucDistGrouped.get_group(n)[list(EucDistGrouped.get_group((n))[EucDistGrouped.get_group(n)['drug']=='DMSO'].index)],\
-#                                 EucDistGrouped.get_group((n))[['drug', 'date']]], axis=1)
-#    plotDF['edist'] = plotDF.select_dtypes(include='float').mean(axis=1) #make sure this excludes concentratin and n - refactor?
-#    plotDF['nworms'] = n  
-#    eDistDF = eDistDF.append(plotDF[['drug', 'date', 'edist', 'nworms']])
-#    del plotDF
-#eDistDF = eDistDF.reset_index(drop=True)    
 
     #plot combined data
 g = sns.FacetGrid(EucDist, col = 'nworms', hue = 'date')
