@@ -106,11 +106,11 @@ for PC in range(0, len(PCname)):
     sortPCs = np.flip(np.argsort(pca.components_[PC]**2), axis=0)
     PC_feat.append(list(featuresZ.columns[sortPCs]))
     weights = (pca.components_[PC]**2)/np.sum(pca.components_[PC]**2)
-    PC_sum.append(list(weights[sortPCs]))
+    PC_sum.append(list(weights))
     
 #dataframe containing standards scores of contibution of each feature
         #rows correspond to PCs
-PC_vals = pd.DataFrame(data= PC_sum, columns = featuresZ.columns)
+PC_vals = pd.DataFrame(data= PC_sum, columns = featuresZ.columns) #march 2019 this is wrong!!!
 
 #okay so now can plot as biplot
 plt.figure()
