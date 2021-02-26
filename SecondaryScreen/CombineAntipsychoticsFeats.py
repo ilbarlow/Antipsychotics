@@ -14,7 +14,7 @@ import seaborn as sns
 from scipy import stats
 import os
 
-dirparent = '/Volumes/behavgenom$/Ida/Data/Antipsychotics/'
+dirparent = '/Volumes/behavgenom$/Ida/Data/Phenix/Antipsychotics'
 featfilename = 'FeatMatAllNewFeats.csv'
 
 importfiles = []
@@ -131,10 +131,10 @@ plt.show()
 
 #make the PCA plots
 %cd ~/Documents/GitHub/pythonScripts/Functions/
-import PCA_analysis as PC_custom
+import pca_analysis as PC_custom
 import make_colormaps as mkc
 from matplotlib.colors import LinearSegmentedColormap
-import PC_traj as PCJ
+import pc_traj as PCJ
 
 #reset figure settings
 sns.set()
@@ -156,7 +156,7 @@ for drug in lutGraded:
 
 #make the PC plots
 savedir =  '/Volumes/behavgenom$/Ida/Data/Antipsychotics/Combined_analysis/Figures'
-PC_custom.PC12_plots(PC_df, [],[], cmap1, savedir, 'tif', 'concentration')
+PC_custom.PC12_plots(PC_df, [],[], cmap1, savedir, 'tif', 'concentration', addControls=True)
 PCmean, PCsem = PC_custom.PC_av(PC_df, [], 'concentration')
 
 PCJ.PC_trajGraded(PCmean, PCsem,['PC_1','PC_2'], [], savedir, '.png', 'concentration', start_end = False,\
